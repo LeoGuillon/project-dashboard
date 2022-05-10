@@ -1,0 +1,48 @@
+---
+title: "Costa Rica stations map"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+
+library(tidyr)
+library(dplyr)
+library(magrittr)
+
+library(ggplot2)
+
+library(leaflet)
+```
+
+```{r data loading, include=FALSE}
+coord_clean <- read.table("dat/coord_clean.txt", header = TRUE)
+```
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Carte
+
+```{r map}
+factpal <- colorFactor(topo.colors(20), coord_clean$basin)
+
+leaflet(coord_clean) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~x.wgs,
+              lat = ~y.wgs,
+             popup = ~as.character(id),
+             stroke = FALSE,
+             color = ~factpal(basin),
+             fillOpacity = 0.8)
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Description
+
+This map features the stations that records precipitations around Costa Rica. Some of the stations are in double, that will be fixed in a near future. There's one outlier in the Cocos Island.
