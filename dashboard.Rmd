@@ -16,16 +16,22 @@ library(magrittr)
 library(ggplot2)
 
 library(leaflet)
+library(leaflet.extras)
 ```
 
 ```{r data loading, include=FALSE}
 coord_clean <- read.table("dat/coord_clean.txt", header = TRUE)
+
+exploitable_fit_integral <- read.table("dat/exploitable_fit_integral.csv", header = TRUE, sep = ",")
 ```
 
-Column {data-width=650}
------------------------------------------------------------------------
+```{r}
+coord_clean %<>% mutate(label = paste(sep="", "<b>Station n°", id, " :</b><br><ul><li>lat = ", y.wgs, "<li>lon = ", x.wgs, "</ul>"))
 
-### Carte
+exploitable_fit_integral %<>% mutate(label = paste(sep="", "<b>Station n°", id, "</b><br><ul><li>lat = ", y.wgs, "<li> lon = ", x.wgs,"</ul>Parameters (duration ", dur, " minutes) :<ul>", "<li>μ = ", μ,"<li>ϕ = ", ϕ, "<li>ξ = ", ξ, "</ul>"))
+```
+
+# Map of stations
 
 ```{r map}
 factpal <- colorFactor(topo.colors(20), coord_clean$basin)
@@ -34,15 +40,135 @@ leaflet(coord_clean) %>%
   addTiles() %>%
   addCircleMarkers(lng = ~x.wgs,
               lat = ~y.wgs,
-             popup = ~as.character(id),
+             popup = ~label,
+             label = ~as.character(id),
              stroke = FALSE,
              color = ~factpal(basin),
-             fillOpacity = 0.8)
+             fillOpacity = 0.8) %>%
+  addResetMapButton()
 ```
 
-Column {data-width=350}
------------------------------------------------------------------------
 
-### Description
 
-This map features the stations that records precipitations around Costa Rica. Some of the stations are in double, that will be fixed in a near future. There's one outlier in the Cocos Island.
+
+# Map of Location parameter
+
+
+```{r gevfit.location}
+xipal <- colorNumeric("Oranges", exploitable_fit_integral$μ)
+
+
+leaflet(exploitable_fit_integral) %>%
+  addTiles() %>%
+  addCircleMarkers(data = exploitable_fit_integral %>% filter(dur == 360),
+                    lng = ~x.wgs,
+                    lat = ~y.wgs,
+                   popup = ~label,
+                   label = ~as.character(id),
+                   stroke = FALSE,
+                   fillOpacity = 0.8,
+                   color = ~xipal(μ),
+                    group = "360") %>%
+  addCircleMarkers(data = exploitable_fit_integral %>% filter(dur == 720),
+                    lng = ~x.wgs,
+                    lat = ~y.wgs,
+                   popup = ~label,
+                   label = ~as.character(id),
+                   stroke = FALSE,
+                   fillOpacity = 0.8,
+                   color = ~xipal(μ),
+                    group = "720") %>%
+  addCircleMarkers(data = exploitable_fit_integral %>% filter(dur == 1440),
+                    lng = ~x.wgs,
+                    lat = ~y.wgs,
+                   popup = ~label,
+                   label = ~as.character(id),
+                   stroke = FALSE,
+                   fillOpacity = 0.8,
+                   color = ~xipal(μ),
+                    group = "1440") %>%
+  addLayersControl(baseGroups = c("360", "720", "1440")) %>%
+  addLegend(pal = xipal, values = ~μ, opacity = 1) %>%
+  addResetMapButton()
+```
+
+# Map of Scale parameter
+
+```{r gevfit.scale}
+xipal <- colorNumeric("Oranges", exploitable_fit_integral$ϕ)
+
+leaflet(exploitable_fit_integral) %>%
+  addTiles() %>%
+  addCircleMarkers(data = exploitable_fit_integral %>% filter(dur == 360),
+                    lng = ~x.wgs,
+                    lat = ~y.wgs,
+                   popup = ~label,
+                   label = ~as.character(id),
+                   stroke = FALSE,
+                   fillOpacity = 0.8,
+                   color = ~xipal(ϕ),
+                    group = "360") %>%
+  addCircleMarkers(data = exploitable_fit_integral %>% filter(dur == 720),
+                    lng = ~x.wgs,
+                    lat = ~y.wgs,
+                   popup = ~label,
+                   label = ~as.character(id),
+                   stroke = FALSE,
+                   fillOpacity = 0.8,
+                   color = ~xipal(ϕ),
+                    group = "720") %>%
+  addCircleMarkers(data = exploitable_fit_integral %>% filter(dur == 1440),
+                    lng = ~x.wgs,
+                    lat = ~y.wgs,
+                   popup = ~label,
+                   label = ~as.character(id),
+                   stroke = FALSE,
+                   fillOpacity = 0.8,
+                   color = ~xipal(ϕ),
+                    group = "1440") %>%
+  addLayersControl(baseGroups = c("360", "720", "1440")) %>%
+  addLegend(pal = xipal, values = ~ϕ, opacity = 1) %>%
+  addResetMapButton()
+```
+
+
+# Map of Shape parameter
+
+```{r gevfit.shape}
+xipal <- colorNumeric("Oranges", exploitable_fit_integral$ξ)
+
+leaflet(exploitable_fit_integral) %>%
+  addTiles() %>%
+  addCircleMarkers(data = exploitable_fit_integral %>% filter(dur == 360),
+                    lng = ~x.wgs,
+                    lat = ~y.wgs,
+                   popup = ~label,
+                   label = ~as.character(id),
+                   stroke = FALSE,
+                   fillOpacity = 0.8,
+                   color = ~xipal(ξ),
+                    group = "360") %>%
+  addCircleMarkers(data = exploitable_fit_integral %>% filter(dur == 720),
+                    lng = ~x.wgs,
+                    lat = ~y.wgs,
+                   popup = ~label,
+                   label = ~as.character(id),
+                   stroke = FALSE,
+                   fillOpacity = 0.8,
+                   color = ~xipal(ξ),
+                    group = "720") %>%
+  addCircleMarkers(data = exploitable_fit_integral %>% filter(dur == 1440),
+                    lng = ~x.wgs,
+                    lat = ~y.wgs,
+                   popup = ~label,
+                   label = ~as.character(id),
+                   stroke = FALSE,
+                   fillOpacity = 0.8,
+                   color = ~xipal(ξ),
+                    group = "1440") %>%
+  addLayersControl(baseGroups = c("360", "720", "1440")) %>%
+  addLegend(pal = xipal, values = ~ξ, opacity = 1) %>%
+  addResetMapButton()
+```
+
+
