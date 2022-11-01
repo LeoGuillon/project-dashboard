@@ -19,8 +19,17 @@ library(leaflet)
 ```
 
 ```{r data loading, include=FALSE}
-coord_clean <- read.table("dat/coord_clean.txt", header = TRUE)
+coords <- read.csv("dat/info_stations.csv", header = TRUE)
 ```
+
+```{r icons, include=FALSE}
+water <- makeAwesomeIcon(
+  icon = "water-outline",
+  markerColor = "blue",
+  library = "ion"
+)
+```
+
 
 Column {data-width=650}
 -----------------------------------------------------------------------
@@ -28,21 +37,20 @@ Column {data-width=650}
 ### Carte
 
 ```{r map}
-factpal <- colorFactor(topo.colors(20), coord_clean$basin)
-
-leaflet(coord_clean) %>%
+leaflet(data = coords) %>%
   addTiles() %>%
-  addCircleMarkers(lng = ~x.wgs,
-              lat = ~y.wgs,
-             popup = ~as.character(id),
-             stroke = FALSE,
-             color = ~factpal(basin),
-             fillOpacity = 0.8)
+  addAwesomeMarkers(lng = ~Lon,
+              lat = ~Lat,
+              icon = water,
+             popup = ~ID,
+             label = ~ID)
 ```
+
+
 
 Column {data-width=350}
 -----------------------------------------------------------------------
 
 ### Description
 
-This map features the stations that records precipitations around Costa Rica. Some of the stations are in double, that will be fixed in a near future. There's one outlier in the Cocos Island.
+This map features the stations that records precipitations around British Columbia.
