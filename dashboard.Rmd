@@ -1,5 +1,5 @@
 ---
-title: "Costa Rica stations map"
+title: "British Columbia Rainfall map"
 output: 
   flexdashboard::flex_dashboard:
     orientation: columns
@@ -16,41 +16,150 @@ library(magrittr)
 library(ggplot2)
 
 library(leaflet)
+library(leaflet.extras)
 ```
 
 ```{r data loading, include=FALSE}
-coords <- read.csv("dat/info_stations.csv", header = TRUE)
+coords <- read.csv("dat/gev_24h.csv", header = TRUE)
+
+grid <- read.csv("dat/grid.csv", header = TRUE)
 ```
 
 ```{r icons, include=FALSE}
 water <- makeAwesomeIcon(
   icon = "water-outline",
-  markerColor = "blue",
   library = "ion"
 )
 ```
 
-
-Column {data-width=650}
------------------------------------------------------------------------
-
-### Carte
-
-```{r map}
-leaflet(data = coords) %>%
-  addTiles() %>%
-  addAwesomeMarkers(lng = ~Lon,
-              lat = ~Lat,
-              icon = water,
-             popup = ~ID,
-             label = ~ID)
+```{r label, include=FALSE}
+coords %<>% mutate(Label = paste("<b>", Name, 
+                                 "</b><br>ID : ", ID, 
+                                 "<br>Latitude : ", Lat, 
+                                 "<br>Longitude : ", Lon, 
+                                 "<br>Elevation : ", Elevation, " m",
+                                 "<br>μ : ", μ,
+                                 "<br>ϕ : ", ϕ,
+                                 "<br>ξ :", ξ))
 ```
 
 
+# Stations' map
 
-Column {data-width=350}
------------------------------------------------------------------------
+```{r map}
+elevation.pal <- colorNumeric(
+  palette = "YlOrRd",
+  domain = coords$Elevation)
 
-### Description
+leaflet(data = coords) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~Lon,
+              lat = ~Lat,
+             popup = ~Label,
+             label = ~ID,
+             stroke = FALSE,
+             fillOpacity = 0.8,
+             radius = 8,
+             color = ~elevation.pal(Elevation)) %>%
+  addLegend(position = "topright",
+            pal = elevation.pal,
+            values = ~Elevation,
+            title = "Altitude in m",
+            labFormat = labelFormat(suffix = " m"),
+            opacity = 1) %>%
+  addResetMapButton()
+```
 
-This map features the stations that records precipitations around British Columbia.
+# Location parameter
+
+```{r}
+
+location.pal <- colorNumeric(
+  palette = "YlOrRd",
+  domain = coords$μ)
+
+leaflet(data = coords) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~Lon,
+              lat = ~Lat,
+             popup = ~Label,
+             label = ~ID,
+             stroke = FALSE,
+             fillOpacity = 0.8,
+             radius = 8,
+             color = ~location.pal(μ)) %>%
+  addLegend(position = "topright",
+            pal = location.pal,
+            values = ~μ,
+            title = "Location parameter μ",
+            opacity = 1) %>%
+  addResetMapButton()
+```
+
+# Scale parameter
+
+```{r}
+
+scale.pal <- colorNumeric(
+  palette = "YlOrRd",
+  domain = coords$ϕ)
+
+leaflet(data = coords) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~Lon,
+              lat = ~Lat,
+             popup = ~Label,
+             label = ~ID,
+             stroke = FALSE,
+             fillOpacity = 0.8,
+             radius = 8,
+             color = ~scale.pal(ϕ)) %>%
+  addLegend(position = "topright",
+            pal = scale.pal,
+            values = ~ϕ,
+            title = "Scale parameter ϕ",
+            opacity = 1) %>%
+  addResetMapButton()
+```
+
+# Shape parameter
+
+```{r}
+shape.pal <- colorNumeric(
+  palette = "YlOrRd",
+  domain = coords$ξ)
+
+leaflet(data = coords) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~Lon,
+              lat = ~Lat,
+             popup = ~Label,
+             label = ~ID,
+             stroke = FALSE,
+             fillOpacity = 0.8,
+             radius = 8,
+             color = ~shape.pal(ξ)) %>%
+  addLegend(position = "topright",
+            pal = shape.pal,
+            values = ~ξ,
+            title = "Shape parameter ξ",
+            opacity = 1) %>%
+  addResetMapButton()
+```
+
+# Grid cells
+
+
+```{r grid}
+
+#leaflet(data = grid) %>%
+  # addTiles() %>%
+  # addCircleMarkers(lng = ~lon,
+  #             lat = ~lat,
+  #            stroke = FALSE,
+  #            fillOpacity = 0.8,
+  #            radius = 4) %>%
+  # addResetMapButton()
+
+```
+
