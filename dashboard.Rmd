@@ -1,9 +1,7 @@
 ---
 title: "British Columbia Rainfall map"
 output: 
-  flexdashboard::flex_dashboard:
-    orientation: columns
-    vertical_layout: fill
+  flexdashboard::flex_dashboard
 ---
 
 ```{r setup, include=FALSE}
@@ -17,22 +15,18 @@ library(ggplot2)
 
 library(leaflet)
 library(leaflet.extras)
+
+library(raster)
+library(sf)
+library(terra)
 ```
 
 ```{r data loading, include=FALSE}
+# ECCC Data
 coords <- read.csv("dat/gev_24h.csv", header = TRUE)
 
-grid <- read.csv("dat/grid.csv", header = TRUE)
-```
+focus = c("VANCOUVER UBC", "PLEASANT CAMP", "GERMANSEN LANDING", "DUNCAN LAKE DAM")
 
-```{r icons, include=FALSE}
-water <- makeAwesomeIcon(
-  icon = "water-outline",
-  library = "ion"
-)
-```
-
-```{r label, include=FALSE}
 coords %<>% mutate(Label = paste("<b>", Name, 
                                  "</b><br>ID : ", ID, 
                                  "<br>Latitude : ", Lat, 
@@ -40,126 +34,305 @@ coords %<>% mutate(Label = paste("<b>", Name,
                                  "<br>Elevation : ", Elevation, " m",
                                  "<br>μ : ", μ,
                                  "<br>ϕ : ", ϕ,
-                                 "<br>ξ :", ξ))
+                                 "<br>ξ : ", ξ,
+                                 "<br>q20 : ", q20))
+coords %<>% mutate(foc = Name %in% focus)
+
+
+# Gridded covariates
+model = "A"
+
+caspar_mean <- read.csv(paste("dat/CaSPAr/BC_meanPcp_", model, ".csv", sep=""), header = TRUE)
+caspar_mean$GridCell <- 1:nrow(caspar_mean)
+caspar_gev <- read.csv(paste("dat/CaSPAr/BC_GEV_", model, ".csv", sep=""), header = TRUE)
+
+elevation <- read.csv("dat/Elevation/grid-open_meteo.csv", header = TRUE)
+elevation$GridCell <- 1:nrow(elevation)
+
+
+grid <- caspar_mean %>% 
+  inner_join(caspar_gev, by = "GridCell") %>%
+  inner_join(elevation, by = "GridCell") %>%
+  dplyr::select(Lat.x, Lon.x, GridCell, q, Pcp, Elevation)
+
+colnames(grid) <- c("Lat", "Lon", "GridCell", "q", "Pcp", "Elevation")
+
+# results from MCMC best model
+results <- read.csv(paste("dat/results/grid-tridim_opti_", model, ".csv", sep=""),header = TRUE)
 ```
 
 
-# Stations' map
 
-```{r map}
+Presentation
+==========================
+
+
+ECCC Stations' map
+==========================
+
+Column {data-width=800}
+---------------------------
+
+### Map
+
+```{r ECCC.map}
+rad = 6.5
+
 elevation.pal <- colorNumeric(
   palette = "YlOrRd",
   domain = coords$Elevation)
-
-leaflet(data = coords) %>%
-  addTiles() %>%
-  addCircleMarkers(lng = ~Lon,
-              lat = ~Lat,
-             popup = ~Label,
-             label = ~ID,
-             stroke = FALSE,
-             fillOpacity = 0.8,
-             radius = 8,
-             color = ~elevation.pal(Elevation)) %>%
-  addLegend(position = "topright",
-            pal = elevation.pal,
-            values = ~Elevation,
-            title = "Altitude in m",
-            labFormat = labelFormat(suffix = " m"),
-            opacity = 1) %>%
-  addResetMapButton()
-```
-
-# Location parameter
-
-```{r}
 
 location.pal <- colorNumeric(
   palette = "YlOrRd",
   domain = coords$μ)
 
-leaflet(data = coords) %>%
-  addTiles() %>%
-  addCircleMarkers(lng = ~Lon,
-              lat = ~Lat,
-             popup = ~Label,
-             label = ~ID,
-             stroke = FALSE,
-             fillOpacity = 0.8,
-             radius = 8,
-             color = ~location.pal(μ)) %>%
-  addLegend(position = "topright",
-            pal = location.pal,
-            values = ~μ,
-            title = "Location parameter μ",
-            opacity = 1) %>%
-  addResetMapButton()
-```
-
-# Scale parameter
-
-```{r}
-
 scale.pal <- colorNumeric(
   palette = "YlOrRd",
   domain = coords$ϕ)
 
+shape.pal <- colorNumeric(
+  palette = c("blue", "yellow", "red"),
+  domain = coords$ξ)
+
+quantile.pal <- colorNumeric(
+  palette = "YlOrRd",
+  domain = coords$q20)
+
 leaflet(data = coords) %>%
   addTiles() %>%
   addCircleMarkers(lng = ~Lon,
               lat = ~Lat,
              popup = ~Label,
-             label = ~ID,
+             label = ~Name,
+             fillOpacity = 0.8,
+             radius = rad,
+             fillColor = ~elevation.pal(Elevation),
+             stroke = FALSE,
+             group = "Elevation") %>%
+  addLegend(position = "topright",
+            pal = elevation.pal,
+            values = ~Elevation,
+            title = "Altitude in m",
+            labFormat = labelFormat(suffix = " m"),
+            opacity = 1,
+            group = "Elevation",
+            layerId = "Elevation") %>%
+  addCircleMarkers(lng = ~Lon,
+              lat = ~Lat,
+             popup = ~Label,
+             label = ~Name,
              stroke = FALSE,
              fillOpacity = 0.8,
-             radius = 8,
-             color = ~scale.pal(ϕ)) %>%
+             radius = rad,
+             color = ~location.pal(μ),
+             group = "Location") %>%
+  addLegend(position = "topright",
+            pal = location.pal,
+            values = ~μ,
+            title = "Location parameter μ",
+            opacity = 1,
+            group = "Location",
+            layerId = "Location") %>%
+  addCircleMarkers(lng = ~Lon,
+              lat = ~Lat,
+             popup = ~Label,
+             label = ~Name,
+             stroke = FALSE,
+             fillOpacity = 0.8,
+             radius = rad,
+             color = ~scale.pal(ϕ),
+             group = "Scale") %>%
   addLegend(position = "topright",
             pal = scale.pal,
             values = ~ϕ,
             title = "Scale parameter ϕ",
-            opacity = 1) %>%
-  addResetMapButton()
-```
-
-# Shape parameter
-
-```{r}
-shape.pal <- colorNumeric(
-  palette = "YlOrRd",
-  domain = coords$ξ)
-
-leaflet(data = coords) %>%
-  addTiles() %>%
+            opacity = 1,
+            group = "Scale",
+            layerId = "Scale") %>%
   addCircleMarkers(lng = ~Lon,
               lat = ~Lat,
              popup = ~Label,
-             label = ~ID,
+             label = ~Name,
              stroke = FALSE,
              fillOpacity = 0.8,
-             radius = 8,
-             color = ~shape.pal(ξ)) %>%
+             radius = rad,
+             color = ~shape.pal(ξ),
+             group = "Shape") %>%
   addLegend(position = "topright",
             pal = shape.pal,
             values = ~ξ,
             title = "Shape parameter ξ",
-            opacity = 1) %>%
-  addResetMapButton()
+            opacity = 1,
+            group = "Shape",
+            layerId = "Shape") %>%
+  addCircleMarkers(lng = ~Lon,
+              lat = ~Lat,
+              popup = ~Label,
+              label = ~Name,
+             fillOpacity = 0,
+             radius = rad,
+             stroke = ~foc,
+             color = "black", 
+             group = "Focus") %>%
+  addLayersControl(
+    baseGroups = c("Elevation", "Location", "Scale", "Shape"),
+    overlayGroups = c("Focus"),
+    options = layersControlOptions(collapsed = FALSE),
+    position = "bottomleft") %>%
+  addResetMapButton() %>%
+  htmlwidgets::onRender("
+    function() { 
+      var map = this;
+      var legends = map.controls._controlsById;
+      function addActualLegend() {
+         var sel = $('.leaflet-control-layers-base').find('input[type=\"radio\"]:checked').siblings('span').text().trim();
+         $.each(map.controls._controlsById, (nm) => map.removeControl(map.controls.get(nm)));
+         map.addControl(legends[sel]);
+      }
+      $('.leaflet-control-layers-base').on('click', addActualLegend);
+      addActualLegend();
+   }")
 ```
 
-# Grid cells
+
+Column {data-width=200}
+----------------------------
+
+### ECCC Data explanation
+
+This map showcases the data collected from 120 ECCC's stations all around British Columbia. Among the starting 134 stations, 14 of them were scrapped out from this study, as we needed one station for each grid cell at most, and some of the stations had aberrant results (the most being the oceant front side station at Moresby Island).
 
 
-```{r grid}
+The "focus" overlay showcases the four stations that were chosen arbitrairly during the study to provide the trace from MCMC.
 
-#leaflet(data = grid) %>%
-  # addTiles() %>%
-  # addCircleMarkers(lng = ~lon,
-  #             lat = ~lat,
-  #            stroke = FALSE,
-  #            fillOpacity = 0.8,
-  #            radius = 4) %>%
-  # addResetMapButton()
+
+Covariates
+==========================
+
+Column {data-width=800}
+----------------------------
+
+### Map
+
+```{r Covariates.map}
+rad = 2
+op = 0.3
+
+
+# -- RASTERS CREATION
+
+#generic base raster
+e <- extent(as.matrix(dplyr::select(grid, Lon, Lat))[, 1:2])
+r <- raster(e, ncol = 150, nrow = 200) #a preciser pour la taille de la grille
+
+# GEV quantile
+
+quantile.matrix <- grid %>% 
+  dplyr::select(Lat, Lon, q) %>%
+  as.matrix()
+
+quantile.raster <- raster::rasterize(quantile.matrix[, 2:1], r, quantile.matrix[,3], fun=mean)
+raster::crs(quantile.raster) <- sp::CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+
+quantile.pal <- colorNumeric(
+  palette = "YlOrRd",
+  domain = raster::values(quantile.raster),
+  na.color = "transparent")
+
+# Mean precipitation
+pcp.matrix <- grid %>% 
+  dplyr::select(Lat, Lon, Pcp) %>%
+  as.matrix()
+
+pcp.raster <- raster::rasterize(pcp.matrix[, 2:1], r, pcp.matrix[,3], fun=mean)
+raster::crs(pcp.raster) <- sp::CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+
+pcp.pal <- colorNumeric(
+  palette = "YlOrRd",
+  domain = raster::values(pcp.raster),
+  na.color = "transparent")
+
+# Elevation
+elevation.matrix <- grid %>% 
+  dplyr::select(Lat, Lon, Elevation) %>%
+  as.matrix()
+
+elevation.raster <- raster::rasterize(elevation.matrix[, 2:1], r, elevation.matrix[,3], fun=mean)
+raster::crs(elevation.raster) <- sp::CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+
+elevation.pal <- colorNumeric(
+  palette = "YlOrRd",
+  domain = raster::values(elevation.raster),
+  na.color = "transparent")
+
+
+
+m <- leaflet() %>%
+  addTiles() %>%
+  addRasterImage(quantile.raster,
+                 colors = quantile.pal,
+                 opacity = 0.8,
+                 group = "Quantile") %>%
+  addLegend(position = "topright",
+            pal = quantile.pal, 
+            values = raster::values(quantile.raster),
+            title = "20-years return level in mm/h",
+            opacity = 1,
+            group = "Quantile",
+            layerId = "Quantile") %>%
+  addRasterImage(pcp.raster,
+                 colors = pcp.pal,
+                 opacity = 0.8,
+                 group = "Mean precipitation") %>%
+  addLegend(position = "topright",
+            pal = pcp.pal, 
+            values = raster::values(pcp.raster),
+            title = "Annual mean precipitation in mm/h",
+            opacity = 1,
+            group = "Mean precipitation",
+            layerId = "Mean precipitation") %>%
+  addRasterImage(elevation.raster,
+                 colors = elevation.pal,
+                 opacity = 0.8,
+                 group = "Elevation") %>%
+  addLegend(position = "topright",
+            pal = elevation.pal, 
+            values = raster::values(elevation.raster),
+            title = "Elevation in m",
+            opacity = 1,
+            group = "Elevation",
+            layerId = "Elevation") %>%
+  addLayersControl(
+    baseGroups = c("Quantile", "Mean precipitation", "Elevation"),
+    options = layersControlOptions(collapsed = FALSE),
+    position = "bottomleft") %>%
+  addResetMapButton() %>%
+  htmlwidgets::onRender("
+    function() { 
+      var map = this;
+      var legends = map.controls._controlsById;
+      function addActualLegend() {
+         var sel = $('.leaflet-control-layers-base').find('input[type=\"radio\"]:checked').siblings('span').text().trim();
+         $.each(map.controls._controlsById, (nm) => map.removeControl(map.controls.get(nm)));
+         map.addControl(legends[sel]);
+      }
+      $('.leaflet-control-layers-base').on('click', addActualLegend);
+      addActualLegend();
+   }")
+m
 
 ```
+
+Column {data-width=200}
+----------------------------
+
+### CaSPAr models summary
+
+Blablabla
+
+
+
+
+
+
 
