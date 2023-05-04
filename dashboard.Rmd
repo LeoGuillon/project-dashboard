@@ -23,7 +23,16 @@ library(terra)
 
 ```{r data loading, include=FALSE}
 # ECCC Data
-coords <- read.csv("dat/gev_24h.csv", header = TRUE)
+info_stations <- read.csv("dat/info_stations.csv", header = TRUE)
+info_stations %<>% dplyr::select(Name, ID, Lat, Lon, Elevation)
+
+info_stations %<>% mutate(Label = paste("<b>", Name, 
+                                 "</b><br>ID : ", ID, 
+                                 "<br>Latitude : ", Lat, 
+                                 "<br>Longitude : ", Lon, 
+                                 "<br>Elevation : ", Elevation, " m"))
+
+coords <- read.csv("dat/results/gev/gev_24h-clean.csv", header = TRUE)
 
 focus = c("VANCOUVER UBC", "PLEASANT CAMP", "GERMANSEN LANDING", "DUNCAN LAKE DAM")
 
@@ -40,7 +49,7 @@ coords %<>% mutate(foc = Name %in% focus)
 
 
 # Gridded covariates
-model = "A"
+model = "P"
 
 caspar_mean <- read.csv(paste("dat/CaSPAr/BC_meanPcp_", model, ".csv", sep=""), header = TRUE)
 caspar_mean$GridCell <- 1:nrow(caspar_mean)
@@ -58,13 +67,53 @@ grid <- caspar_mean %>%
 colnames(grid) <- c("Lat", "Lon", "GridCell", "q", "Pcp", "Elevation")
 
 # results from MCMC best model
-results <- read.csv(paste("dat/results/grid-tridim_opti_", model, ".csv", sep=""),header = TRUE)
+results <- read.csv(paste("dat/results/grid/grid-tridim_opti_", model, ".csv", sep=""),header = TRUE)
 ```
 
 
 
 Presentation
 ==========================
+
+Column {data-width=800}
+---------------------------
+
+### Map
+
+```{r complete.map}
+
+rad = 6.5
+elevation.pal <- colorNumeric(
+  palette = "YlOrRd",
+  domain = info_stations$Elevation)
+
+leaflet(data = info_stations) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~Lon,
+              lat = ~Lat,
+             popup = ~Label,
+             label = ~Name,
+             fillOpacity = 0.8,
+             radius = rad,
+             fillColor = ~elevation.pal(Elevation),
+             stroke = FALSE) %>%
+  addLegend(position = "topright",
+            pal = elevation.pal,
+            values = ~Elevation,
+            title = "Altitude in m",
+            labFormat = labelFormat(suffix = " m"),
+            opacity = 1) %>%
+  addResetMapButton()
+
+
+```
+
+
+
+Column {data-width=200}
+----------------------------
+
+### Project Presentation
 
 
 ECCC Stations' map
