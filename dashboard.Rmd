@@ -29,8 +29,7 @@ info_stations %<>% dplyr::select(Name, ID, Lat, Lon, Elevation)
 info_stations %<>% mutate(Label = paste("<b>", Name, 
                                  "</b><br>ID : ", ID, 
                                  "<br>Latitude : ", Lat, 
-                                 "<br>Longitude : ", Lon, 
-                                 "<br>Elevation : ", Elevation, " m"))
+                                 "<br>Longitude : ", Lon))
 
 coords <- read.csv("dat/results/gev/gev_24h-clean.csv", header = TRUE)
 
@@ -71,8 +70,12 @@ results <- read.csv(paste("dat/results/grid/grid-tridim_opti_", model, ".csv", s
 ```
 
 
+```{r}
 
-Presentation
+```
+
+
+Project overview
 ==========================
 
 Column {data-width=800}
@@ -80,43 +83,37 @@ Column {data-width=800}
 
 ### Map
 
-```{r complete.map}
 
-rad = 6.5
-elevation.pal <- colorNumeric(
-  palette = "YlOrRd",
-  domain = info_stations$Elevation)
+```{r stations.map}
+
+icon <- awesomeIcons(
+  icon = 'ios-cloud',
+  iconColor = 'black',
+  library = 'ion'
+)
 
 leaflet(data = info_stations) %>%
   addTiles() %>%
-  addCircleMarkers(lng = ~Lon,
+  addAwesomeMarkers(lng = ~Lon,
               lat = ~Lat,
+              icon = icon,
              popup = ~Label,
-             label = ~Name,
-             fillOpacity = 0.8,
-             radius = rad,
-             fillColor = ~elevation.pal(Elevation),
-             stroke = FALSE) %>%
-  addLegend(position = "topright",
-            pal = elevation.pal,
-            values = ~Elevation,
-            title = "Altitude in m",
-            labFormat = labelFormat(suffix = " m"),
-            opacity = 1) %>%
+             label = ~Name) %>%
   addResetMapButton()
-
+  
 
 ```
 
 
-
 Column {data-width=200}
-----------------------------
+---------------------------
 
-### Project Presentation
+### Presentation
+
+Blablabla
 
 
-ECCC Stations' map
+ECCC Stations' data analysis
 ==========================
 
 Column {data-width=800}
@@ -379,6 +376,68 @@ Column {data-width=200}
 
 Blablabla
 
+
+
+Results from the spatial MCMC
+==========================
+
+Column {data-width=800}
+----------------------------
+
+### Map
+
+```{r results.map}
+
+rad = 2
+op = 0.3
+
+results %<>% mutate(logq = log(q))
+
+
+# -- RASTERS CREATION
+
+#generic base raster
+e <- extent(as.matrix(dplyr::select(results, Lon, Lat))[, 1:2])
+r <- raster(e, ncol = 150, nrow = 200) #a preciser pour la taille de la grille
+
+# GEV quantile
+
+quantile.matrix <- results %>% 
+  dplyr::select(Lat, Lon, logq) %>%
+  as.matrix()
+
+quantile.raster <- raster::rasterize(quantile.matrix[, 2:1], r, quantile.matrix[,3], fun=mean)
+raster::crs(quantile.raster) <- sp::CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
+
+quantile.pal <- colorNumeric(
+  palette = "YlOrRd",
+  domain = raster::values(quantile.raster),
+  na.color = "transparent")
+
+m <- leaflet() %>%
+  addTiles() %>%
+  addRasterImage(quantile.raster,
+                 colors = quantile.pal,
+                 opacity = 0.8) %>%
+  addLegend(position = "topright",
+            pal = quantile.pal, 
+            values = raster::values(quantile.raster),
+            title = "20-years return level in mm/h",
+            opacity = 1) %>%
+  addResetMapButton()
+
+m
+
+```
+
+
+
+Column {data-width=200}
+----------------------------
+
+### CaSPAr models summary
+
+Blablabla
 
 
 
