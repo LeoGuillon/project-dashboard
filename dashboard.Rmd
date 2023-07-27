@@ -66,12 +66,12 @@ grid <- caspar_mean %>%
 colnames(grid) <- c("Lat", "Lon", "GridCell", "q", "Pcp", "Elevation")
 
 # results from MCMC best model
-results <- read.csv(paste("dat/results/grid/grid-tridim_opti_", model, ".csv", sep=""),header = TRUE)
+results <- read.csv(paste("dat/results/grid/grid-GEV_", model, ".csv", sep=""),header = TRUE)
 ```
 
 
 ```{r}
-
+results %<>% mutate(logq = log(q))
 ```
 
 
@@ -422,7 +422,7 @@ m <- leaflet() %>%
   addLegend(position = "topright",
             pal = quantile.pal, 
             values = raster::values(quantile.raster),
-            title = "20-years return level in mm/h",
+            title = "log-20-years return level in mm/h",
             opacity = 1) %>%
   addResetMapButton()
 
