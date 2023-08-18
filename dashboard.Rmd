@@ -66,7 +66,7 @@ grid <- caspar_mean %>%
 colnames(grid) <- c("Lat", "Lon", "GridCell", "q", "Pcp", "Elevation")
 
 # results from MCMC best model
-results <- read.csv(paste("dat/results/grid/grid-GEV_", model, ".csv", sep=""),header = TRUE)
+results <- read.csv("dat/results/grid/grid-tridim_opti_P.csv",header = TRUE)
 ```
 
 
@@ -75,7 +75,7 @@ results %<>% mutate(logq = log(q))
 ```
 
 
-Project overview
+<!--Project overview
 ==========================
 
 Column {data-width=800}
@@ -110,7 +110,7 @@ Column {data-width=200}
 
 ### Presentation
 
-Blablabla
+Blablabla-->
 
 
 ECCC Stations' data analysis
@@ -246,13 +246,16 @@ Column {data-width=200}
 
 ### ECCC Data explanation
 
-This map showcases the data collected from 120 ECCC's stations all around British Columbia. Among the starting 134 stations, 14 of them were scrapped out from this study, as we needed one station for each grid cell at most, and some of the stations had aberrant results (the most being the oceant front side station at Moresby Island).
+This map showcases the data collected from 120 ECCC's stations all around British Columbia. Among the starting 134 stations, 14 of them were scrapped out from this study, as we needed one station for each grid cell at most, and some of the stations had aberrant results (the most being the ocean front side station at Moresby Island).
 
 
-The "focus" overlay showcases the four stations that were chosen arbitrairly during the study to provide the trace from MCMC.
+An station-wise estimation of the GEV parameters was done using the Extremes.jl Julia package. We showcase both location, scale and shape parameters, alongside the 20-years return level (e.g. quantile for the GEV distribution on 20 years).
 
 
-Covariates
+The "focus" overlay showcases the four stations that were chosen arbitrarily during the study to provide the trace from MCMC.
+
+
+<!--Covariates
 ==========================
 
 Column {data-width=800}
@@ -444,3 +447,4 @@ Blablabla
 
 
 
+-->
