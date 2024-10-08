@@ -61,12 +61,12 @@ elevation$GridCell <- 1:nrow(elevation)
 grid <- caspar_mean %>% 
   inner_join(caspar_gev, by = "GridCell") %>%
   inner_join(elevation, by = "GridCell") %>%
-  dplyr::select(Lat.x, Lon.x, GridCell, q, Pcp, Elevation)
+  dplyr::select(Lat.x, Lon.x, GridCell, μ, ϕ, ξ, q, Pcp, Elevation)
 
-colnames(grid) <- c("Lat", "Lon", "GridCell", "q", "Pcp", "Elevation")
+colnames(grid) <- c("Lat", "Lon", "GridCell", "μ", "ϕ", "ξ", "q", "Pcp", "Elevation")
 
 # results from MCMC best model
-results <- read.csv("dat/results/grid/grid-tridim_opti_P.csv",header = TRUE)
+results <- read.csv("dat/results/grid/grid-tridim_P.csv",header = TRUE)
 ```
 
 
@@ -122,14 +122,23 @@ Column {data-width=800}
 ### Map
 
 ```{r ECCC.map}
+
+
 rad = 6.5
+stroke_weight = 2
+stroke_color = "#444444"
+opacity = 0.8
+
+# focus.pal <- colorFactor(
+#   palette = c("#444444", "darkgreen"),
+#   domain = coords$foc)
 
 elevation.pal <- colorNumeric(
-  palette = "YlOrRd",
+  palette = c("yellow", "red", "black"),
   domain = coords$Elevation)
 
 location.pal <- colorNumeric(
-  palette = "YlOrRd",
+  palette = c("yellow", "red", "black"),
   domain = coords$μ)
 
 scale.pal <- colorNumeric(
@@ -140,9 +149,9 @@ shape.pal <- colorNumeric(
   palette = c("blue", "yellow", "red"),
   domain = coords$ξ)
 
-quantile.pal <- colorNumeric(
-  palette = "YlOrRd",
-  domain = coords$q20)
+# quantile.pal <- colorNumeric(
+#   palette = "YlOrRd",
+#   domain = coords$q20)
 
 leaflet(data = coords) %>%
   addTiles() %>%
@@ -150,10 +159,11 @@ leaflet(data = coords) %>%
               lat = ~Lat,
              popup = ~Label,
              label = ~Name,
-             fillOpacity = 0.8,
+             weight = stroke_weight,
+             color = stroke_color,
+             fillOpacity = opacity,
              radius = rad,
              fillColor = ~elevation.pal(Elevation),
-             stroke = FALSE,
              group = "Elevation") %>%
   addLegend(position = "topright",
             pal = elevation.pal,
@@ -167,10 +177,11 @@ leaflet(data = coords) %>%
               lat = ~Lat,
              popup = ~Label,
              label = ~Name,
-             stroke = FALSE,
-             fillOpacity = 0.8,
+             weight = stroke_weight,
+             color = stroke_color,
+             fillOpacity = opacity,
              radius = rad,
-             color = ~location.pal(μ),
+             fillColor = ~location.pal(μ),
              group = "Location") %>%
   addLegend(position = "topright",
             pal = location.pal,
@@ -183,10 +194,11 @@ leaflet(data = coords) %>%
               lat = ~Lat,
              popup = ~Label,
              label = ~Name,
-             stroke = FALSE,
-             fillOpacity = 0.8,
+             weight = stroke_weight,
+             color = stroke_color,
+             fillOpacity = opacity,
              radius = rad,
-             color = ~scale.pal(ϕ),
+             fillColor = ~scale.pal(ϕ),
              group = "Scale") %>%
   addLegend(position = "topright",
             pal = scale.pal,
@@ -199,10 +211,11 @@ leaflet(data = coords) %>%
               lat = ~Lat,
              popup = ~Label,
              label = ~Name,
-             stroke = FALSE,
-             fillOpacity = 0.8,
+             weight = stroke_weight,
+             color = stroke_color,
+             fillOpacity = opacity,
              radius = rad,
-             color = ~shape.pal(ξ),
+             fillColor = ~shape.pal(ξ),
              group = "Shape") %>%
   addLegend(position = "topright",
             pal = shape.pal,
@@ -211,18 +224,8 @@ leaflet(data = coords) %>%
             opacity = 1,
             group = "Shape",
             layerId = "Shape") %>%
-  addCircleMarkers(lng = ~Lon,
-              lat = ~Lat,
-              popup = ~Label,
-              label = ~Name,
-             fillOpacity = 0,
-             radius = rad,
-             stroke = ~foc,
-             color = "black", 
-             group = "Focus") %>%
   addLayersControl(
     baseGroups = c("Elevation", "Location", "Scale", "Shape"),
-    overlayGroups = c("Focus"),
     options = layersControlOptions(collapsed = FALSE),
     position = "bottomleft") %>%
   addResetMapButton() %>%
@@ -255,11 +258,11 @@ An station-wise estimation of the GEV parameters was done using the Extremes.jl 
 The "focus" overlay showcases the four stations that were chosen arbitrarily during the study to provide the trace from MCMC.
 
 
-<!--Covariates
+--Covariates
 ==========================
 
 Column {data-width=800}
-----------------------------
+---------------------------- 
 
 ### Map
 
@@ -368,6 +371,7 @@ m <- leaflet() %>%
       $('.leaflet-control-layers-base').on('click', addActualLegend);
       addActualLegend();
    }")
+
 m
 
 ```
@@ -378,6 +382,8 @@ Column {data-width=200}
 ### CaSPAr models summary
 
 Blablabla
+
+
 
 
 
@@ -435,16 +441,10 @@ m
 
 
 
-Column {data-width=200}
+<!--Column {data-width=200}
 ----------------------------
 
 ### CaSPAr models summary
 
 Blablabla
-
-
-
-
-
-
 -->
